@@ -1,5 +1,6 @@
 package Vista;
 
+import Modelo.LoginRegisterDAO;
 import Modelo.Usuario;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -228,19 +229,52 @@ public class Registro extends javax.swing.JFrame {
 
     //Funciones 
     // <editor-fold defaultstate="collapsed" desc="Generated Code"> 
-    
-    private boolean valirdarNombreUsuarioExistente(String nombreUsuario, ArrayList<Usuario> usuariosRegistrados) {
-        
-        
+    private void registrarUsuarioSQL() {
 
-            long numeroUsuariosRepetidos = usuariosRegistrados.stream().filter(usuario -> nombreUsuario.equals(usuario.getNombre())).count();
-            
-            if (numeroUsuariosRepetidos == 0) {
-                return false;
+        Usuario user = new Usuario();
+        LoginRegisterDAO log = new LoginRegisterDAO();
+        boolean validarNuevoUsuario;
+        String usuario = txtUsuario.getText();
+        String pass = txtContraseña.getText();
+        String validarPass = txtConfirmarContraseña.getText();
+
+        if (!pass.equals(validarPass)) {
+
+            if (!"".equals(usuario) || !"".equals(pass)) {
+                JOptionPane.showMessageDialog(null, "Las contraseñas no coinciden", "ERROR", 0);
+                txtContraseña.setText("");
+                txtConfirmarContraseña.setText("");
             }
+        } else {
+            validarNuevoUsuario = log.validarNuevoUsuario(usuario);
+            if (!validarNuevoUsuario) {
+                user.setNombre(usuario);
+                user.setContraseña(pass);
+                log.registrarUsuarios(user);
+                JOptionPane.showMessageDialog(null, "Nuevo Usuario Creado", "Felicidades", 1);
+                Inicio abrir = new Inicio();
+                abrir.setVisible(true);
+                this.setVisible(false);
+            } else {
+                JOptionPane.showMessageDialog(null, "Ya ha sido creado un usuario con ese mismo nombre ", "ERROR", 0);
+                txtUsuario.setText(null);
+                txtContraseña.setText("");
+                txtConfirmarContraseña.setText("");
+            }
+        }
+    }
 
-            return true;
-        
+    
+
+    private boolean valirdarNombreUsuarioExistente(String nombreUsuario, ArrayList<Usuario> usuariosRegistrados) {
+
+        long numeroUsuariosRepetidos = usuariosRegistrados.stream().filter(usuario -> nombreUsuario.equals(usuario.getNombre())).count();
+
+        if (numeroUsuariosRepetidos == 0) {
+            return false;
+        }
+
+        return true;
 
     }
 
@@ -270,9 +304,9 @@ public class Registro extends javax.swing.JFrame {
 
                     nuevoUsuario.setNombre(nombreUsuario);
                     nuevoUsuario.setContraseña(contraseña);
-                    
+
                     listaUsuarios.add(nuevoUsuario);
-                    
+
                     String user = documento.toJson(listaUsuarios);
 
                     try (BufferedWriter bw = new BufferedWriter(new FileWriter("Usuarios.json"))) {
@@ -293,7 +327,7 @@ public class Registro extends javax.swing.JFrame {
                     listaUsuarios = new Gson().fromJson(br2, new TypeToken<ArrayList<Usuario>>() {
                     }.getType());
                     usuarioEncontrado = valirdarNombreUsuarioExistente(nombreUsuario, listaUsuarios);
-                    
+
                     if (usuarioEncontrado) {
                         JOptionPane.showMessageDialog(null, "El usuario ya ha sido registrado con ese mismo nombre", "ERROR", 0);
                     } else if (!contraseña.equals(comprobarContraseña)) {
@@ -356,7 +390,8 @@ public class Registro extends javax.swing.JFrame {
     }//GEN-LAST:event_botonCancelarActionPerformed
 
     private void botonRegistrarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonRegistrarActionPerformed
-        registrarUsuario();
+        registrarUsuarioSQL();
+        //registrarUsuario();
     }//GEN-LAST:event_botonRegistrarActionPerformed
 
     /**

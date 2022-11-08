@@ -1,5 +1,6 @@
 package Vista;
 
+import Modelo.LoginRegisterDAO;
 import Modelo.Usuario;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -196,6 +197,28 @@ public class Login extends javax.swing.JFrame {
 
     //Funciones 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">
+    private void iniciarSesionSQL() {
+        
+        Usuario user;
+        LoginRegisterDAO log = new LoginRegisterDAO();
+        
+        String usuario = txtUsuario.getText();
+        String pass = txtContraseña.getText();
+        
+        if (!"".equals(usuario) || !"".equals(pass)) {
+            
+            user = log.logear(usuario, pass);
+            if (user.getNombre() != null && user.getContraseña() != null) {
+                SistemaAdministradores abrir = new SistemaAdministradores();
+                abrir.setVisible(true);
+                this.setVisible(false);
+            } else {
+                JOptionPane.showMessageDialog(null, "Usuario o contraseña incorrectos", "ERROR", 0);
+                txtUsuario.setText("");
+                txtContraseña.setText("");
+            }
+        }
+    }
     
     private boolean valirdarLoginUsuario(Usuario usuarioLogin, ArrayList<Usuario> usuariosRegistrados) {
         
@@ -271,14 +294,14 @@ public class Login extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", 0);
         }
     }
-
+    
     private void SetImagenLabel(JLabel LabelName, String root) {
         ImageIcon imagen = new ImageIcon(root);
         Icon icono = new ImageIcon(imagen.getImage().getScaledInstance(LabelName.getWidth(), LabelName.getHeight(), Image.SCALE_DEFAULT));
         LabelName.setIcon(icono);
         this.repaint();
     }
-    
+
     // </editor-fold> 
 
     private void txtUsuarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtUsuarioActionPerformed
@@ -292,13 +315,13 @@ public class Login extends javax.swing.JFrame {
     }//GEN-LAST:event_botonCancelarActionPerformed
 
     private void botonIniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonIniciarActionPerformed
-        iniciarSesion();
+        iniciarSesionSQL();
+        //iniciarSesion();
     }//GEN-LAST:event_botonIniciarActionPerformed
 
     /**
      * @param args the command line arguments
      */
-    
     public static void main(String args[]) {
         
         try {
@@ -326,8 +349,6 @@ public class Login extends javax.swing.JFrame {
             }
         });
     }
-    
-    
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

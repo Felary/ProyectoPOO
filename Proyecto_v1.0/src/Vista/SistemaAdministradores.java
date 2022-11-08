@@ -1,6 +1,8 @@
 package Vista;
 
 import Modelo.DatosEmpresa;
+import Modelo.BaseDatosGeneral;
+import Modelo.Conexion;
 import Modelo.Producto;
 import Modelo.Proveedor;
 import com.google.gson.Gson;
@@ -12,6 +14,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,9 +36,7 @@ public class SistemaAdministradores extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
         SetImagenLabel(imgLogo, "src/Imagenes/Logo.png");
-        mostrarPorveedoresEnProductos();
 
-        // mostrarDatosEmpreza();
     }
 
     @SuppressWarnings("unchecked")
@@ -603,6 +609,11 @@ public class SistemaAdministradores extends javax.swing.JFrame {
 
         botonActualizarProveedores.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/Actualizar (2).png"))); // NOI18N
         botonActualizarProveedores.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        botonActualizarProveedores.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                botonActualizarProveedoresActionPerformed(evt);
+            }
+        });
 
         botonEliminarProveedores.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/eliminar.png"))); // NOI18N
         botonEliminarProveedores.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -724,7 +735,7 @@ public class SistemaAdministradores extends javax.swing.JFrame {
 
             },
             new String [] {
-                "codigo", "descripcion", "cantidad", "precio", "proveedor"
+                "CODIGO", "DESCRIPCION", "CANTIDAD", "PRECIO", "PROVEEDOR"
             }
         ));
         jScrollPane4.setViewportView(tablaProducto);
@@ -1157,6 +1168,109 @@ public class SistemaAdministradores extends javax.swing.JFrame {
     // </editor-fold> 
     //fin funciones configuariones
     // <editor-fold defaultstate="collapsed" desc="Funciones Productos"> 
+    public void RegistrarNuevoProductoSQL() {
+        BaseDatosGeneral MyBD = new BaseDatosGeneral();
+        boolean validarNuevoProducto;
+
+        String codigo = txtCodigoProducto.getText();
+        String descripcion = txtDescripccionProducto.getText();
+        int cantidad = Integer.parseInt(txtCantdadProducto.getText());
+        double precion = Double.parseDouble(txtPrecioProducto.getText());
+        String proveedor = boxProveedorProducto.getSelectedItem().toString();
+
+        validarNuevoProducto = MyBD.validarNuevoProducto(codigo);
+        if (!validarNuevoProducto) {
+            Producto nuevoProducto = new Producto(codigo, descripcion, cantidad, precion, proveedor);
+            MyBD.RegistrarProducto(nuevoProducto);
+            JOptionPane.showMessageDialog(null, "Nuevo producto añadido", "Felicidades", 1);
+        } else {
+            JOptionPane.showMessageDialog(null, "Ya ha sido creado un producto con ese mismo codigo ", "ERROR", 0);
+            limpiarDatosProductos();
+        }
+    }
+
+    public void mostrarProveedorEnProductosSQL() {
+        Connection conn;
+
+        try {
+            conn
+                    = DriverManager.getConnection("jdbc:mysql://localhost/proyecto?"
+                            + "user=root&password=");
+
+            Statement statement = conn.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM proveedores");
+
+            boxProveedorProducto.removeAllItems();
+
+            while (resultSet.next()) {
+                String nombre = resultSet.getString("nombre");
+                boxProveedorProducto.addItem(nombre);
+            }
+        } catch (SQLException e) {
+        }
+    }
+
+    public void buscarProductoSQL() {
+        Connection conn;
+        PreparedStatement ps;
+        Conexion cn = new Conexion();
+        try {
+            conn = cn.getConnection();
+
+            ps = conn.prepareStatement("SELECT * FROM productos WHERE codigo = ?");
+            ps.setString(1, txtBuscarProducto.getText());
+            ResultSet resultSet = ps.executeQuery();
+
+            while (resultSet.next()) {
+
+                txtCodigoProducto.setText(resultSet.getString("codigo"));
+                txtDescripccionProducto.setText(resultSet.getString("descripcion"));
+                txtCantdadProducto.setText(resultSet.getString("cantidad"));
+                txtPrecioProducto.setText(resultSet.getString("precio"));
+                boxProveedorProducto.setSelectedItem(resultSet.getString("proveedor"));
+
+            }
+        } catch (SQLException e) {
+        }
+    }
+
+    public void actualizarProductoSQL() {
+        BaseDatosGeneral MyBD = new BaseDatosGeneral();
+        String codigo = txtCodigoProducto.getText();
+        String descripcion = txtDescripccionProducto.getText();
+        int cantidad = Integer.parseInt(txtCantdadProducto.getText());
+        double precion = Double.parseDouble(txtPrecioProducto.getText());
+        String proveedor = boxProveedorProducto.getSelectedItem().toString();
+
+        Producto productoModificado = new Producto(codigo, descripcion, cantidad, precion, proveedor);
+        boolean validar = MyBD.modificarProducto(productoModificado);
+
+        if (validar) {
+            JOptionPane.showMessageDialog(null, "Los datos se han actualizado con exito", "Felicidades", 1);
+        }
+    }
+
+    public void eliminarProductoSQl() {     //ARREGLAR
+        Connection conn;
+        PreparedStatement ps;
+        Conexion cn = new Conexion();
+        try {
+            conn = cn.getConnection();
+
+            ps = conn.prepareStatement("DELETE * FROM productos WHERE codigo = ?");
+            ps.setString(1, txtCodigoProducto.getText());
+            ps.executeUpdate();
+            //int resultado = ps.executeUpdate();
+
+            /*if (resultado > 0) {
+                JOptionPane.showMessageDialog(null, "Producto Eliminado", "Correcto", 1);
+                limpiarDatosProductos();
+            }*/
+        } catch (SQLException e) {
+        }
+    }
+
+    // <editor-fold defaultstate="collapsed" desc="Json "> 
     private void mostrarDatosProductoEnTabla(ArrayList<Producto> listaProductos) {
         DefaultTableModel tabla = new DefaultTableModel();
         tablaProducto.setModel(tabla);
@@ -1173,7 +1287,7 @@ public class SistemaAdministradores extends javax.swing.JFrame {
             vectorProductos[0] = listaProductos.get(i).getCodigo();
             vectorProductos[1] = listaProductos.get(i).getDescripcion();
             vectorProductos[2] = String.valueOf(listaProductos.get(i).getCantidad());
-            vectorProductos[3] = String.valueOf(listaProductos.get(i).getPrecio());            
+            vectorProductos[3] = String.valueOf(listaProductos.get(i).getPrecio());
             vectorProductos[4] = listaProductos.get(i).getProveedor();
             tabla.addRow(vectorProductos);
         }
@@ -1505,10 +1619,71 @@ public class SistemaAdministradores extends javax.swing.JFrame {
             }
         }
     }
-
+// </editor-fold> 
     // </editor-fold> 
     //fin funciones Productos
     // <editor-fold defaultstate="collapsed" desc="Funciones Proveedores "> 
+
+    public void actualizarProveedorSQL() {
+        BaseDatosGeneral MyBD = new BaseDatosGeneral();
+        String ruc = txtRucProveedores.getText();
+        String nombre = txtNombreProveedores.getText();
+        String telefono = txtTelefonoProveedores.getText();
+        String direccion = txtDireccionProveedores.getText();
+
+        Proveedor nuevoProveedor = new Proveedor(ruc, nombre, telefono, direccion);
+        boolean validar = MyBD.modificarProveedor(nuevoProveedor);
+
+        if (validar) {
+            JOptionPane.showMessageDialog(null, "Los datos se han actualizado con exito", "Felicidades", 1);
+        }
+    }
+
+    public void RegistrarNuevoProveedorSQL() {
+        BaseDatosGeneral MyBD = new BaseDatosGeneral();
+        boolean validarNuevoProveedor;
+
+        String ruc = txtRucProveedores.getText();
+        String nombre = txtNombreProveedores.getText();
+        String telefono = txtTelefonoProveedores.getText();
+        String direccion = txtDireccionProveedores.getText();
+
+        validarNuevoProveedor = MyBD.validarNuevoProveedor(ruc);
+        if (!validarNuevoProveedor) {
+            Proveedor nuevoProveedor = new Proveedor(ruc, nombre, telefono, direccion);
+            MyBD.RegistrarProveedor(nuevoProveedor);
+            JOptionPane.showMessageDialog(null, "Nuevo producto añadido", "Felicidades", 1);
+            limpiarDatosProveedores();
+        } else {
+            JOptionPane.showMessageDialog(null, "Ya ha sido creado un Proveedor con ese mismo ruc ", "ERROR", 0);
+            limpiarDatosProveedores();
+        }
+    }
+
+    public void buscarProveedoresSQL() {
+        Connection conn;
+        PreparedStatement ps;
+        Conexion cn = new Conexion();
+
+        try {
+            conn = cn.getConnection();
+
+            ps = conn.prepareStatement("SELECT * FROM proveedores WHERE ruc = ?");
+            ps.setString(1, txtBuscarProveedor.getText());
+            ResultSet resultSet = ps.executeQuery();
+
+            while (resultSet.next()) {
+                txtRucProveedores.setText(resultSet.getString("ruc"));
+                txtNombreProveedores.setText(resultSet.getString("nombre"));
+                txtTelefonoProveedores.setText(resultSet.getString("telefono"));
+                txtDireccionProveedores.setText(resultSet.getString("direccion"));
+
+            }
+        } catch (SQLException e) {
+        }
+    }
+
+    // <editor-fold defaultstate="collapsed" desc="JSON "> 
     private boolean valirdarProveedorExistente(String rucProveedor, ArrayList<Proveedor> proveedoresRegistrados) {
 
         if (proveedoresRegistrados != null) {
@@ -1720,8 +1895,77 @@ public class SistemaAdministradores extends javax.swing.JFrame {
     }
 
     // </editor-fold> 
+    // </editor-fold> 
     //fin funciones Proveedores
     // <editor-fold defaultstate="collapsed" desc="Funciones Globales"> 
+    public void mostrarTablas(String tablas) {
+        Connection conn;
+        DefaultTableModel tabla = new DefaultTableModel();
+        switch (tablas) {
+            case "productos":
+
+                tabla.addColumn("CODIGO");
+                tabla.addColumn("DESCRIPCION");
+                tabla.addColumn("CANTIDAD");
+                tabla.addColumn("PRECIO");
+                tabla.addColumn("PROVEEDOR");
+                tablaProducto.setModel(tabla);
+
+                String[] vectorProductos = new String[5];
+                try {
+                    String sql = "SELECT * FROM " + tablas;
+                    conn
+                            = DriverManager.getConnection("jdbc:mysql://localhost/proyecto?"
+                                    + "user=root&password=");
+                    Statement statement = conn.createStatement();
+                    ResultSet resultSet = statement.executeQuery(sql);
+
+                    while (resultSet.next()) {
+                        vectorProductos[0] = resultSet.getString(1);
+                        vectorProductos[1] = resultSet.getString(2);
+                        vectorProductos[2] = resultSet.getString(3);
+                        vectorProductos[3] = resultSet.getString(4);
+                        vectorProductos[4] = resultSet.getString(5);
+                        tabla.addRow(vectorProductos);
+                    }
+
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(null, e.toString(), "ERROR", 0);
+                }
+                break;
+            case "proveedores":
+
+                tabla.addColumn("RUC");
+                tabla.addColumn("NOMBRE");
+                tabla.addColumn("TELEFONO");
+                tabla.addColumn("DIRECCION");
+                tablaProveedores.setModel(tabla);
+
+                String[] vectorProveedores = new String[4];
+                try {
+                    String sql = "SELECT * FROM " + tablas;
+                    conn
+                            = DriverManager.getConnection("jdbc:mysql://localhost/proyecto?"
+                                    + "user=root&password=");
+                    Statement statement = conn.createStatement();
+                    ResultSet resultSet = statement.executeQuery(sql);
+
+                    while (resultSet.next()) {
+                        vectorProveedores[0] = resultSet.getString(1);
+                        vectorProveedores[1] = resultSet.getString(2);
+                        vectorProveedores[2] = resultSet.getString(3);
+                        vectorProveedores[3] = resultSet.getString(4);
+                        tabla.addRow(vectorProveedores);
+                    }
+
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(null, e.toString(), "ERROR", 0);
+                }
+                break;
+        }
+
+    }
+
     private void SetImagenLabel(JLabel LabelName, String root) {
         ImageIcon imagen = new ImageIcon(root);
         Icon icono = new ImageIcon(imagen.getImage().getScaledInstance(LabelName.getWidth(), LabelName.getHeight(), Image.SCALE_DEFAULT));
@@ -1735,6 +1979,7 @@ public class SistemaAdministradores extends javax.swing.JFrame {
         txtDescripccionProducto.setText("");
         txtCantdadProducto.setText("");
         txtPrecioProducto.setText("");
+        boxProveedorProducto.setSelectedItem("Seleccione Proveedor");
     }
 
     private void limpiarDatosProveedores() {
@@ -1765,12 +2010,18 @@ public class SistemaAdministradores extends javax.swing.JFrame {
     }//GEN-LAST:event_txtDNIClientesActionPerformed
 
     private void botonGuardarTodoProveedoresActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonGuardarTodoProveedoresActionPerformed
-        registrarNuevoProveedor();
+        RegistrarNuevoProveedorSQL();
+        mostrarProveedorEnProductosSQL();
+        mostrarTablas("proveedores");
+        //registrarNuevoProveedor();
     }//GEN-LAST:event_botonGuardarTodoProveedoresActionPerformed
 
     private void botonGuardarTodoProductoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonGuardarTodoProductoActionPerformed
-        registrarNuevoProducto();
-        mandarDatosProductoATabla();
+
+        RegistrarNuevoProductoSQL();
+        mostrarTablas("productos");
+        //registrarNuevoProducto();
+        //mandarDatosProductoATabla();
     }//GEN-LAST:event_botonGuardarTodoProductoActionPerformed
 
     private void botonPdfVentasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonPdfVentasActionPerformed
@@ -1779,10 +2030,16 @@ public class SistemaAdministradores extends javax.swing.JFrame {
 
     private void botonProveedorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonProveedorActionPerformed
         tablaPrincipal.setSelectedIndex(2);
+        mostrarTablas("proveedores");
     }//GEN-LAST:event_botonProveedorActionPerformed
 
     private void botonProductosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonProductosActionPerformed
-        mandarDatosProductoATabla();
+        mostrarProveedorEnProductosSQL();
+        mostrarTablas("productos");
+        boxProveedorProducto.setSelectedItem("Seleccione Proveedor");
+
+        //mostrarPorveedoresEnProductos();
+        //mandarDatosProductoATabla();
         tablaPrincipal.setSelectedIndex(3);
     }//GEN-LAST:event_botonProductosActionPerformed
 
@@ -1795,12 +2052,19 @@ public class SistemaAdministradores extends javax.swing.JFrame {
     }//GEN-LAST:event_botonNuevoProductoActionPerformed
 
     private void botonActualizarProductoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonActualizarProductoActionPerformed
-        modificarProducto();
-        mandarDatosProductoATabla();
+
+        actualizarProductoSQL();
+        limpiarDatosProductos();
+        mostrarTablas("productos");
+
+        //modificarProducto();
+        //mandarDatosProductoATabla();
     }//GEN-LAST:event_botonActualizarProductoActionPerformed
 
     private void botonBuscarProductosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonBuscarProductosActionPerformed
-        buscarMostrarProductos();
+
+        buscarProductoSQL();
+        //buscarMostrarProductos();
         txtBuscarProducto.setText("");
         txtCodigoProducto.setEnabled(false);
     }//GEN-LAST:event_botonBuscarProductosActionPerformed
@@ -1831,19 +2095,30 @@ public class SistemaAdministradores extends javax.swing.JFrame {
     }//GEN-LAST:event_botonGuardarDatosConfiguracionesActionPerformed
 
     private void botonEliminarProductoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonEliminarProductoActionPerformed
-        eliminarProducto();
-        mandarDatosProductoATabla();
+        eliminarProductoSQl();
+        mostrarTablas("productos");
+        //eliminarProducto();
+        //mandarDatosProductoATabla();
     }//GEN-LAST:event_botonEliminarProductoActionPerformed
 
     private void botonBuscarProveedorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonBuscarProveedorActionPerformed
-        buscarMostrarProveedores();
+        buscarProveedoresSQL();
+        //buscarMostrarProveedores();
         txtBuscarProveedor.setText("");
         txtRucProveedores.setEnabled(false);
     }//GEN-LAST:event_botonBuscarProveedorActionPerformed
 
     private void botonEliminarProveedoresActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonEliminarProveedoresActionPerformed
+        mostrarTablas("proveedores");
         eliminarproveedor();
     }//GEN-LAST:event_botonEliminarProveedoresActionPerformed
+
+    private void botonActualizarProveedoresActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botonActualizarProveedoresActionPerformed
+        actualizarProveedorSQL();
+        limpiarDatosProveedores();
+        mostrarTablas("proveedores");
+
+    }//GEN-LAST:event_botonActualizarProveedoresActionPerformed
 
     /**
      * @param args the command line arguments

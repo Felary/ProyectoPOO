@@ -10,6 +10,14 @@ public class Producto {
     
     public Producto() {
     }   
+
+    public Producto(String codigo, String descripcion, int cantidad, double precio, String proveedor) {
+        this.codigo = codigo;
+        this.descripcion = descripcion;
+        this.cantidad = cantidad;
+        this.precio = precio;
+        this.proveedor = proveedor;
+    }
     
     public String getCodigo() {
         return codigo;

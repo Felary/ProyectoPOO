@@ -7,6 +7,15 @@ public class Proveedor {
     private String telefono;
     private String direccion;
 
+    public Proveedor(String ruc, String nombre, String telefono, String direccion) {
+        this.ruc = ruc;
+        this.nombre = nombre;
+        this.telefono = telefono;
+        this.direccion = direccion;
+    }
+
+    
+    
     public Proveedor() {
     }
 
